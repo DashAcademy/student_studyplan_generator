@@ -589,41 +589,17 @@
     text-align: left;
   }
 
-  /* ---------- SEND PLAN BLOCK ---------- */
-  .send-plan-block {
-    background: #fff;
-    border: 1.5px solid var(--indigo);
-    border-radius: 14px;
+  /* ---------- EMAIL CONFIRM ---------- */
+  .email-confirm {
+    background: var(--indigo-light);
+    border-radius: 10px;
     padding: 18px 20px;
     margin-bottom: 14px;
     text-align: center;
   }
-  .send-plan-btn {
-    width: 100%;
-    background: var(--indigo);
-    color: #fff;
-    font-weight: 700;
-    font-size: 15px;
-    padding: 14px 20px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    transition: background 0.2s ease, transform 0.15s ease;
-    box-shadow: 0 8px 20px -6px rgba(109,91,247,0.45);
-  }
-  .send-plan-btn:hover { background: var(--indigo-dark); transform: translateY(-1px); }
-  .send-plan-btn:disabled { background: #A49FE0; cursor: not-allowed; transform: none; box-shadow: none; }
-  .send-plan-label { font-size: 12.5px; color: var(--gray-text); margin-bottom: 12px; }
-  .send-plan-success {
-    display: none;
-    background: var(--indigo-light);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--indigo-dark);
-  }
+  .email-confirm-check { font-weight: 700; color: var(--indigo-dark); }
+  #emailConfirmText { font-size: 13px; font-weight: 600; color: var(--indigo-dark); }
+  .cta-sub-note { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 10px; }
 
   /* ---------- RESULTS PANEL ---------- */
   .tool-results {
@@ -1002,11 +978,17 @@
         <form id="planForm">
           <div class="field-row">
             <div class="field">
-              <label for="firstName">First name</label>
+              <label for="firstName">First name <span style="color:var(--indigo)">*</span></label>
               <input type="text" id="firstName" placeholder="Alex" required>
             </div>
             <div class="field">
-              <label for="classInput">Class</label>
+              <label for="lastName">Last name <span style="color:var(--indigo)">*</span></label>
+              <input type="text" id="lastName" placeholder="Johnson" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="classInput">Class</label>
               <div class="combobox" id="classCombobox">
                 <input type="text" id="classInput" placeholder="Click to search or browse" autocomplete="off">
                 <svg class="combobox-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="#6B6B80" stroke-width="1.6" fill="none"/></svg>
@@ -1080,7 +1062,6 @@
                 </div>
               </div>
             </div>
-          </div>
 
           <div class="field">
             <label>Current grade</label>
@@ -1206,16 +1187,16 @@
           <div class="section-label">Your strategy — 4 tactics to actually move the needle</div>
           <div class="strategy-cards" id="strategyList"></div>
 
-          <div class="send-plan-block" id="sendPlanBlock">
-            <div class="send-plan-label">Your plan is ready — want it in your inbox?</div>
-            <div class="send-plan-success" id="sendPlanSuccess"></div>
-            <button type="button" class="send-plan-btn" id="sendPlanBtn" onclick="sendPlan()">📩 Send this study plan to me</button>
+          <div class="email-confirm" id="emailConfirm" style="display:none;">
+            <span class="email-confirm-check">✓</span> <span id="emailConfirmText">Your plan was sent to your inbox.</span>
           </div>
 
           <div class="cta-block-v2">
+            <div class="cta-emoji">🎯</div>
             <h4>Want to make sure this actually works?</h4>
             <p>A Dash coach will run this plan with you week by week — keeping you on track, adjusting when life gets in the way, and making sure exam day isn't a surprise.</p>
             <a href="https://hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy" target="_blank" class="cta-book-btn">Book a Free Strategy Call</a>
+            <div class="cta-sub-note">Free 30-minute call · No commitment</div>
           </div>
         </div>
       </div>
@@ -1438,43 +1419,11 @@
 
   const focusLabels = { grade: 'Target grade', gpa: 'GPA shield', exam: 'Exam prep', habits: 'Habit build' };
 
-  function sendPlan() {
-    const btn = document.getElementById('sendPlanBtn');
-    const successEl = document.getElementById('sendPlanSuccess');
-    const email = document.getElementById('leadEmail').value.trim();
-    btn.textContent = 'Sending...';
-    btn.disabled = true;
-
-    fetch('/api/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        phone: document.getElementById('leadPhone').value.trim(),
-        examDate: document.getElementById('examDate').value,
-        firstName: document.getElementById('firstName').value.trim() || 'there',
-        className: document.getElementById('classInput').value.trim(),
-        currentGrade: state.currentGrade,
-        goalGrade: state.goalGrade,
-        priority: state.priority,
-        hours: state.hours
-      })
-    })
-    .then(() => {
-      btn.style.display = 'none';
-      successEl.textContent = `✓ Sent to ${email} — check your inbox!`;
-      successEl.style.display = 'block';
-    })
-    .catch(() => {
-      btn.textContent = '📩 Send this study plan to me';
-      btn.disabled = false;
-    });
-  }
-
   document.getElementById('planForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
     const firstName = document.getElementById('firstName').value.trim() || 'there';
+    const lastName = document.getElementById('lastName').value.trim();
     const className = classInput.value.trim();
     const email = document.getElementById('leadEmail').value.trim();
     const phone = document.getElementById('leadPhone').value.trim();
@@ -1500,14 +1449,17 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email, phone, examDate,
-        firstName,
+        firstName, lastName,
         className,
         currentGrade: state.currentGrade,
         goalGrade: state.goalGrade,
         priority: state.priority,
-        hours,
-        skipEmail: true
+        hours
       })
+    }).then(() => {
+      const confirmEl = document.getElementById('emailConfirm');
+      document.getElementById('emailConfirmText').textContent = `A copy was emailed to ${email}`;
+      confirmEl.style.display = 'block';
     }).catch(() => {});
 
     // Render plan
