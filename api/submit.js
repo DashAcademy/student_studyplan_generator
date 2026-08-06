@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, phone, examDate, firstName, className, currentGrade, goalGrade, priority, hours, skipEmail } = req.body;
+  const { email, phone, examDate, firstName, lastName, className, currentGrade, goalGrade, priority, hours } = req.body;
 
   // --- Save to Supabase ---
   try {
@@ -20,6 +20,7 @@ export default async function handler(req, res) {
         phone: phone || null,
         exam_date: examDate || null,
         first_name: firstName,
+        last_name: lastName || null,
         class_name: className,
         current_grade: currentGrade,
         goal_grade: goalGrade,
@@ -31,8 +32,7 @@ export default async function handler(req, res) {
     console.error('Supabase error:', err);
   }
 
-  // --- Send email via Mailgun (only if not skipped) ---
-  if (skipEmail) return res.status(200).json({ success: true });
+  // --- Send email via Mailgun ---
   try {
     const focusLabels = { grade: 'Hit a target grade', gpa: 'Protect my GPA', exam: 'Pass the next exam', habits: 'Build better study habits' };
     const examLine = examDate ? `\nExam/deadline: ${examDate}` : '';
