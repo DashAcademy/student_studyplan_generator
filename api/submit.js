@@ -1,4 +1,3 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -94,6 +93,8 @@ function wrapText(text, font, size, maxW) {
 // ── PDF builder ──────────────────────────────────────────────────────────────
 
 async function generateStudyPlanPDF({ firstName, lastName, className, currentGrade, goalGrade, priority, hours, examDate }) {
+  // Dynamic import so a missing package doesn't crash the whole function
+  const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib');
   const n = Number(hours);
   const distribution = buildWeekDistribution(n, priority);
   const strategies   = getStrategy(currentGrade, goalGrade, priority, n, className);
@@ -409,27 +410,27 @@ https://hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy
 — The Dash Academy Team
     `.trim();
 
-    const formData = new FormData();
-    formData.append('from',    `Dash Academy <noreply@${process.env.MAILGUN_DOMAIN}>`);
-    formData.append('to',      email);
-    formData.append('subject', `${firstName}, your free study plan is ready 📚`);
-    formData.append('text',    emailText);
+    const auth = `Basic ${Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString('base64')}`;
+    const mgUrl = `https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`;
 
     if (pdfBytes) {
-      formData.append(
-        'attachment',
-        new Blob([pdfBytes], { type: 'application/pdf' }),
-        'dash-academy-study-plan.pdf',
-      );
+      // Multipart with PDF attachment
+      const formData = new FormData();
+      formData.append('from',    `Dash Academy <noreply@${process.env.MAILGUN_DOMAIN}>`);
+      formData.append('to',      email);
+      formData.append('subject', `${firstName}, your free study plan is ready 📚`);
+      formData.append('text',    emailText);
+      formData.append('attachment', new Blob([pdfBytes], { type: 'application/pdf' }), 'dash-academy-study-plan.pdf');
+      await fetch(mgUrl, { method: 'POST', headers: { 'Authorization': auth }, body: formData });
+    } else {
+      // Plain form-encoded (no attachment)
+      const body = new URLSearchParams();
+      body.append('from',    `Dash Academy <noreply@${process.env.MAILGUN_DOMAIN}>`);
+      body.append('to',      email);
+      body.append('subject', `${firstName}, your free study plan is ready 📚`);
+      body.append('text',    emailText);
+      await fetch(mgUrl, { method: 'POST', headers: { 'Authorization': auth, 'Content-Type': 'application/x-www-form-urlencoded' }, body });
     }
-
-    await fetch(`https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString('base64')}`,
-      },
-      body: formData,
-    });
   } catch (err) {
     console.error('Mailgun error:', err);
   }
