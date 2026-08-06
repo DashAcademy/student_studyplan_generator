@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -41,10 +41,8 @@ export default async function handler(req, res) {
       habits: 'Build better study habits'
     };
     const examLine = examDate ? `\nExam/deadline: ${examDate}` : '';
-    const phoneLine = phone ? `\nPhone: ${phone}` : '';
 
-    const emailText = `
-Hi ${firstName},
+    const emailText = `Hi ${firstName},
 
 Your free study plan from Dash Academy is ready!
 
@@ -52,24 +50,23 @@ Your free study plan from Dash Academy is ready!
 Class: ${className || 'Your class'}
 Current Grade: ${currentGrade} → Goal: ${goalGrade}
 Weekly Study Hours: ${hours} hrs/week
-Focus: ${focusLabels[priority] || priority}${examLine}${phoneLine}
+Focus: ${focusLabels[priority] || priority}${examLine}
 ────────────────────
 
 Head back to your study plan page to view your full weekly schedule and personalized strategy tips.
 
 Ready to take it further? A Dash Academy coach can run this plan with you week by week — keeping you on track, adjusting when life gets in the way, and making sure exam day isn't a surprise.
 
-Book your free strategy call here:
+Book your free strategy call:
 https://hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy
 
-— The Dash Academy Team
-    `.trim();
+— The Dash Academy Team`;
 
-    const formData = new URLSearchParams();
-    formData.append('from', `Dash Academy <noreply@${process.env.MAILGUN_DOMAIN}>`);
-    formData.append('to', email);
-    formData.append('subject', `${firstName}, your free study plan is ready 📚`);
-    formData.append('text', emailText);
+    const body = new URLSearchParams();
+    body.append('from', `Dash Academy <noreply@${process.env.MAILGUN_DOMAIN}>`);
+    body.append('to', email);
+    body.append('subject', `${firstName}, your free study plan is ready 📚`);
+    body.append('text', emailText);
 
     await fetch(`https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`, {
       method: 'POST',
@@ -77,11 +74,11 @@ https://hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy
         'Authorization': `Basic ${Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: formData
+      body
     });
   } catch (err) {
     console.error('Mailgun error:', err);
   }
 
   return res.status(200).json({ success: true });
-}
+};
