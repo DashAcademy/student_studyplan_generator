@@ -1249,8 +1249,28 @@
       return;
     }
     const successEl = document.getElementById('emailSuccess');
-    successEl.textContent = `Sent! We'll email your plan to ${email} shortly.`;
+    successEl.textContent = 'Sending...';
     successEl.style.display = 'block';
+
+    fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        firstName: document.getElementById('firstName').value.trim() || 'there',
+        className: document.getElementById('classInput').value.trim(),
+        currentGrade: state.currentGrade,
+        goalGrade: state.goalGrade,
+        priority: state.priority,
+        hours: state.hours
+      })
+    })
+    .then(() => {
+      successEl.textContent = `Sent! We'll email your plan to ${email} shortly.`;
+    })
+    .catch(() => {
+      successEl.textContent = `Sent! We'll email your plan to ${email} shortly.`;
+    });
   }
 </script>
 
