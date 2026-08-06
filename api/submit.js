@@ -5,6 +5,64 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// ── Plan logic (mirrors client-side) ────────────────────────────────────────
+
+const gradeRank = { A: 4, B: 3, C: 2, D: 1, F: 0, pass: 1 };
+const gradeLabel = {
+  A: 'A (90–100%)', B: 'B (80–89%)', C: 'C (70–79%)',
+  D: 'D (60–69%)', F: 'F / Unsure', pass: 'Just Pass',
+};
+const focusLabel = {
+  grade: 'Hit a target grade', gpa: 'Protect my GPA',
+  exam: 'Pass the next exam', habits: 'Build better habits',
+};
+
+function buildWeekDistribution(hours, priority) {
+  let weights;
+  if (priority === 'exam')        weights = [1.4, 1.4, 1.6, 1.6, 1.0, 0.6, 0.4];
+  else if (priority === 'habits') weights = [1.2, 1.2, 1.2, 1.2, 1.2, 0.5, 0.5];
+  else if (priority === 'gpa')    weights = [1.3, 1.3, 1.4, 1.4, 0.8, 0.5, 0.3];
+  else                            weights = [1.2, 1.1, 1.3, 1.3, 0.9, 0.6, 0.6];
+  const total = weights.reduce((a, b) => a + b, 0);
+  return weights.map(w => Math.round((w / total) * hours * 10) / 10);
+}
+
+function getStrategy(currentGrade, goalGrade, priority, hours, className) {
+  const gap = Math.max(0, (gradeRank[goalGrade] ?? 3) - (gradeRank[currentGrade] ?? 2));
+  const cls = className || 'your class';
+  const tips = [];
+
+  if (gap >= 1.5) {
+    tips.push(`Rework every problem you've gotten wrong so far in ${cls} from scratch, without looking at the solution first — this is called "error logging," and it closes the exact gaps costing you points.`);
+    tips.push(`Use active recall instead of re-reading: close your notes and write out everything you remember about a topic in ${cls} before checking. Research on the testing effect shows this builds stronger, longer-lasting retention.`);
+  } else if (gap > 0) {
+    tips.push(`Spend your first two sessions each week on retrieval practice for the 2–3 topics in ${cls} where you've lost the most points — quizzing yourself from memory rather than rereading notes.`);
+  } else {
+    tips.push(`You're maintaining your grade, so use spaced repetition: revisit material on a schedule (1 day, 3 days, 1 week later) instead of cramming before deadlines. Spacing out review is one of the most well-supported findings in learning research.`);
+  }
+
+  if (priority === 'exam') {
+    tips.push(`Interleave your practice: mix problem types from different topics in ${cls} within the same session rather than drilling one topic at a time. Studies show interleaving improves your ability to identify problem types on exam day.`);
+    tips.push('In your final 3 days before the exam, do timed practice under realistic conditions — no notes, a clock running — so the format itself is not a surprise.');
+  } else if (priority === 'gpa') {
+    tips.push('List every assignment and exam with its point weight so you can see which grades move your GPA the most, then allocate study time proportionally rather than evenly.');
+    tips.push('Knock out smaller assignments early in the week in short focused sessions, so they don\'t eat into the longer blocks you need for exam prep.');
+  } else if (priority === 'habits') {
+    tips.push('Study at the same time and place each day this week. Habit research shows consistent cues — time and location — build the habit faster than session length does.');
+    tips.push('Keep a short daily log of what you studied and for how long. Seeing the streak in writing makes it far easier to notice when momentum is slipping.');
+  } else {
+    tips.push('Break sessions into focused 25–40 minute blocks with short breaks between them. Sustained, undivided attention produces better retention than longer unbroken sessions.');
+  }
+
+  if (hours <= 3) {
+    tips.push('With limited hours, spend nearly all of it on active practice — problems, self-quizzing — rather than rereading. Passive review is the lowest-return use of a small time budget.');
+  } else if (hours >= 14) {
+    tips.push('With this much time, add a dedicated weekly session that only reviews your error log from past assignments and quizzes. Revisiting mistakes has a stronger effect on retention than an equal amount of time on new material.');
+  }
+
+  return tips.slice(0, 4);
+}
+
 function fmtHours(h) {
   if (h < 0.2) return 'Rest';
   const totalMins = Math.round(Math.round(h * 60 / 15) * 15);
@@ -15,169 +73,262 @@ function fmtHours(h) {
   return `${hrs}h ${mins}m`;
 }
 
-// Wrap text to fit within maxWidth using pdf-lib font
-function wrapText(text, font, fontSize, maxWidth) {
+// Word-wrap helper
+function wrapText(text, font, size, maxW) {
   const words = text.split(' ');
   const lines = [];
-  let current = '';
-  for (const word of words) {
-    const test = current ? `${current} ${word}` : word;
-    if (font.widthOfTextAtSize(test, fontSize) > maxWidth && current) {
-      lines.push(current);
-      current = word;
+  let cur = '';
+  for (const w of words) {
+    const test = cur ? `${cur} ${w}` : w;
+    if (font.widthOfTextAtSize(test, size) > maxW && cur) {
+      lines.push(cur);
+      cur = w;
     } else {
-      current = test;
+      cur = test;
     }
   }
-  if (current) lines.push(current);
+  if (cur) lines.push(cur);
   return lines;
 }
 
-async function generateStudyPlanPDF({ firstName, lastName, className, currentGrade, goalGrade, priority, hours, examDate, schedule, strategies }) {
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([612, 792]);
+// ── PDF builder ──────────────────────────────────────────────────────────────
+
+async function generateStudyPlanPDF({ firstName, lastName, className, currentGrade, goalGrade, priority, hours, examDate }) {
+  const n = Number(hours);
+  const distribution = buildWeekDistribution(n, priority);
+  const strategies   = getStrategy(currentGrade, goalGrade, priority, n, className);
+  const days         = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const pdfDoc   = await PDFDocument.create();
+  const page     = pdfDoc.addPage([612, 864]); // slightly taller for content
   const { width, height } = page.getSize();
 
   const font     = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  // Colors
-  const indigo     = rgb(0.427, 0.357, 0.969);
-  const indigoDark = rgb(0.298, 0.231, 0.710);
-  const indigoLight= rgb(0.937, 0.933, 0.996);
-  const ink        = rgb(0.169, 0.169, 0.239);
-  const gray       = rgb(0.420, 0.420, 0.500);
-  const white      = rgb(1, 1, 1);
+  // Palette
+  const indigo      = rgb(0.427, 0.357, 0.969);
+  const indigoDark  = rgb(0.298, 0.231, 0.710);
+  const indigoMid   = rgb(0.482, 0.361, 0.941);
+  const indigoLight = rgb(0.937, 0.933, 0.996);
+  const ink         = rgb(0.169, 0.169, 0.239);
+  const grayText    = rgb(0.420, 0.420, 0.500);
+  const white       = rgb(1, 1, 1);
+  const border      = rgb(0.906, 0.898, 0.953);
+  const green       = rgb(0.180, 0.745, 0.494);
 
-  // ── Header bar ──────────────────────────────────────────────────────
-  const headerH = 80;
-  page.drawRectangle({ x: 0, y: height - headerH, width, height: headerH, color: indigo });
+  const PAD = 32;
+
+  // ── Gradient-style header card ───────────────────────────────────────
+  const hdrH = 110;
+  // Dark base
+  page.drawRectangle({ x: 0, y: height - hdrH, width, height: hdrH, color: indigoDark });
+  // Lighter overlay strip (simulates gradient)
+  page.drawRectangle({ x: 0, y: height - hdrH, width: width * 0.6, height: hdrH, color: rgb(0.341, 0.267, 0.769) });
 
   // Logo
+  let logoDrawn = false;
   try {
-    const logoPath = path.join(__dirname, '..', 'public', 'logo.png');
-    const logoBytes = fs.readFileSync(logoPath);
-    const logoImg = await pdfDoc.embedPng(logoBytes);
-    const targetH = 38;
-    const scale   = targetH / logoImg.height;
+    const logoBytes = fs.readFileSync(path.join(__dirname, '..', 'public', 'logo.png'));
+    const logoImg   = await pdfDoc.embedPng(logoBytes);
+    const targetH   = 36;
+    const logoW     = logoImg.width * (targetH / logoImg.height);
     page.drawImage(logoImg, {
-      x: 32,
-      y: height - headerH + (headerH - targetH) / 2,
-      width:  logoImg.width * scale,
-      height: targetH,
+      x: PAD, y: height - hdrH + (hdrH - targetH) / 2,
+      width: logoW, height: targetH,
     });
-  } catch {
-    page.drawText('Dash Academy', { x: 32, y: height - 48, size: 18, font: fontBold, color: white });
+    logoDrawn = true;
+  } catch { /* fallback below */ }
+
+  if (!logoDrawn) {
+    page.drawText('DASH ACADEMY', { x: PAD, y: height - 56, size: 14, font: fontBold, color: white });
   }
 
   // URL top-right
   const urlStr = 'studyplan.mydashacademy.com';
   page.drawText(urlStr, {
-    x: width - 32 - font.widthOfTextAtSize(urlStr, 8),
-    y: height - 48,
-    size: 8, font, color: rgb(0.8, 0.76, 1),
+    x: width - PAD - font.widthOfTextAtSize(urlStr, 8),
+    y: height - 44, size: 8, font, color: rgb(0.75, 0.70, 0.97),
   });
 
-  // ── Plan title ──────────────────────────────────────────────────────
+  // ── Plan header card (purple rounded card look) ──────────────────────
+  const cardTop = height - hdrH - 12;
+  const cardH   = 78;
+  page.drawRectangle({ x: PAD, y: cardTop - cardH, width: width - PAD * 2, height: cardH, color: indigo, borderRadius: 10 });
+
+  // "YOUR PERSONALIZED PLAN" label
+  page.drawText('YOUR PERSONALIZED PLAN', {
+    x: PAD + 14, y: cardTop - 20,
+    size: 7.5, font: fontBold, color: rgb(0.82, 0.78, 1),
+  });
+
+  // Student + class title
   const fullName  = [firstName, lastName].filter(Boolean).join(' ');
-  const planTitle = className ? `${fullName}'s Plan — ${className}` : `${fullName}'s Study Plan`;
-  let y = height - headerH - 28;
+  const planTitle = className ? `${fullName}'s plan for ${className}` : `${fullName}'s study plan`;
+  page.drawText(planTitle, {
+    x: PAD + 14, y: cardTop - 36,
+    size: 13, font: fontBold, color: white,
+  });
 
-  page.drawText(planTitle, { x: 32, y, size: 15, font: fontBold, color: ink });
-  y -= 16;
-  page.drawText('Your personalized study plan from Dash Academy', { x: 32, y, size: 9, font, color: gray });
-  y -= 14;
+  // Subtitle line
+  const focusSub = focusLabel[priority] || priority;
+  let subParts = [`${n} hrs/week`, focusSub];
+  if (examDate) {
+    const d = new Date(examDate + 'T00:00:00');
+    const daysLeft = Math.ceil((d - new Date()) / 86400000);
+    if (daysLeft > 0) subParts.push(`${daysLeft} days to your exam`);
+  }
+  page.drawText(subParts.join(' · '), {
+    x: PAD + 14, y: cardTop - 52,
+    size: 8.5, font, color: rgb(0.87, 0.84, 1),
+  });
 
-  // Divider
-  page.drawLine({ start: { x: 32, y }, end: { x: width - 32, y }, thickness: 0.75, color: rgb(0.88, 0.86, 0.97) });
-  y -= 20;
+  // ── Stat cards row ───────────────────────────────────────────────────
+  let y = cardTop - cardH - 16;
+  const statW = (width - PAD * 2 - 16) / 3;
 
-  // ── Info grid ───────────────────────────────────────────────────────
-  const gradeLabel = { A: 'A (90–100%)', B: 'B (80–89%)', C: 'C (70–79%)', D: 'D (60–69%)', F: 'F / Unsure', pass: 'Just Pass' };
-  const focusLabel = { grade: 'Hit a target grade', gpa: 'Protect my GPA', exam: 'Pass the next exam', habits: 'Build better habits' };
-
-  const infoRows = [
-    ['Class', className || '—'],
-    ['Current Grade', gradeLabel[currentGrade] || currentGrade || '—'],
-    ['Goal Grade',    gradeLabel[goalGrade]    || goalGrade    || '—'],
-    ['Weekly Hours',  `${hours} hrs/week`],
-    ['Focus',         focusLabel[priority] || priority || '—'],
-    ...(examDate ? [['Exam / Deadline', examDate]] : []),
+  const curL  = (currentGrade || '').toUpperCase();
+  const goalL = gradeLabel[goalGrade]?.split(' ')[0] || (goalGrade || '').toUpperCase();
+  const stats = [
+    { top: `${curL} → ${goalL}`, bot: 'Grade goal' },
+    { top: `${n} hrs`,           bot: 'hrs/week'   },
+    { top: focusSub.split(' ').slice(0, 2).join(' '), bot: 'Focus mode' },
   ];
 
-  const col1 = 32, col2 = 160;
-  for (const [label, value] of infoRows) {
-    page.drawText(label.toUpperCase(), { x: col1, y, size: 7, font: fontBold, color: gray });
-    page.drawText(value,               { x: col2, y, size: 9, font: fontBold, color: ink  });
-    y -= 17;
-  }
-  y -= 8;
+  stats.forEach((s, i) => {
+    const sx = PAD + i * (statW + 8);
+    page.drawRectangle({ x: sx, y: y - 52, width: statW, height: 52, color: white, borderRadius: 8 });
+    page.drawRectangle({ x: sx, y: y - 52, width: statW, height: 52, borderColor: border, borderWidth: 1, borderRadius: 8 });
 
-  // ── Weekly Schedule ─────────────────────────────────────────────────
-  page.drawRectangle({ x: 32, y: y - 2, width: width - 64, height: 18, color: indigoLight });
-  page.drawText('WEEKLY STUDY SCHEDULE', { x: 38, y: y + 3, size: 7.5, font: fontBold, color: indigo });
-  y -= 20;
-
-  const barArea  = 200;
-  const maxH     = Math.max(...(schedule || []).map(s => s.hours ?? 0), 1);
-
-  for (const s of (schedule || [])) {
-    const hrs    = s.hours ?? 0;
-    const isRest = hrs < 0.2;
-    const barW   = isRest ? 0 : Math.max(6, Math.round((hrs / maxH) * barArea));
-
-    page.drawText(s.day, { x: 32, y, size: 9, font: fontBold, color: isRest ? gray : ink });
-
-    if (!isRest) {
-      page.drawRectangle({ x: 68, y: y - 1, width: barW, height: 10, color: rgb(0.86, 0.82, 0.99) });
-    }
-
-    const label = isRest ? 'Rest' : fmtHours(hrs);
-    page.drawText(label, {
-      x: 68 + barArea + 8, y,
-      size: 9, font: isRest ? font : fontBold,
-      color: isRest ? gray : indigo,
-    });
-    y -= 16;
-  }
-  y -= 8;
-
-  // ── Strategy ────────────────────────────────────────────────────────
-  page.drawRectangle({ x: 32, y: y - 2, width: width - 64, height: 18, color: indigoLight });
-  page.drawText('YOUR STRATEGY — 4 TACTICS TO MOVE THE NEEDLE', { x: 38, y: y + 3, size: 7.5, font: fontBold, color: indigo });
-  y -= 24;
-
-  const tipMaxW = width - 64 - 22;
-  for (let i = 0; i < Math.min(4, (strategies || []).length); i++) {
-    const tip = strategies[i];
-    // Number badge
-    page.drawCircle({ x: 42, y: y + 4, size: 8, color: indigo });
-    page.drawText(String(i + 1), {
-      x: 42 - font.widthOfTextAtSize(String(i + 1), 7) / 2,
-      y: y + 1,
-      size: 7, font: fontBold, color: white,
-    });
-
-    const lines = wrapText(tip, font, 8, tipMaxW);
-    for (let li = 0; li < lines.length; li++) {
-      page.drawText(lines[li], { x: 56, y: y - li * 12, size: 8, font, color: ink });
-    }
-    y -= lines.length * 12 + 14;
-  }
-
-  // ── Footer CTA ──────────────────────────────────────────────────────
-  const footerH = 52;
-  page.drawRectangle({ x: 0, y: 0, width, height: footerH, color: indigoDark });
-
-  page.drawText('Ready to make sure this actually works? Book your free strategy call:', {
-    x: 32, y: 33, size: 8, font, color: rgb(0.87, 0.82, 1),
+    const tw = fontBold.widthOfTextAtSize(s.top, 11);
+    page.drawText(s.top, { x: sx + (statW - tw) / 2, y: y - 26, size: 11, font: fontBold, color: ink });
+    const bw = font.widthOfTextAtSize(s.bot, 8);
+    page.drawText(s.bot, { x: sx + (statW - bw) / 2, y: y - 40, size: 8,  font, color: grayText });
   });
-  page.drawText('hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy', {
-    x: 32, y: 17, size: 8.5, font: fontBold, color: white,
+  y -= 66;
+
+  // ── Effort bar card ──────────────────────────────────────────────────
+  const gap = Math.max(0, (gradeRank[goalGrade] ?? 3) - (gradeRank[currentGrade] ?? 2));
+  let fillPct, effortLabel, effortNote;
+  if (gap === 0)      { fillPct = 30; effortLabel = 'Low';       effortNote = 'You\'re maintaining — consistency is your main lever here.'; }
+  else if (gap <= 1)  { fillPct = 55; effortLabel = 'Moderate';  effortNote = 'A focused, achievable jump with consistent weekly effort.'; }
+  else if (gap <= 2)  { fillPct = 75; effortLabel = 'High';      effortNote = 'A real stretch goal — doable, but it\'ll take disciplined weekly work.'; }
+  else                { fillPct = 92; effortLabel = 'Intensive'; effortNote = 'An ambitious goal. Pairing this plan with coaching is the fastest path.'; }
+
+  page.drawRectangle({ x: PAD, y: y - 60, width: width - PAD * 2, height: 60, color: white, borderRadius: 8 });
+  page.drawRectangle({ x: PAD, y: y - 60, width: width - PAD * 2, height: 60, borderColor: border, borderWidth: 1, borderRadius: 8 });
+
+  page.drawText('Effort required to close the gap', { x: PAD + 14, y: y - 18, size: 8.5, font, color: grayText });
+  page.drawText(effortLabel, { x: width - PAD - 14 - fontBold.widthOfTextAtSize(effortLabel, 8.5), y: y - 18, size: 8.5, font: fontBold, color: ink });
+
+  // Bar track
+  const barTrackW = width - PAD * 2 - 28;
+  page.drawRectangle({ x: PAD + 14, y: y - 34, width: barTrackW, height: 8, color: rgb(0.9, 0.89, 0.97), borderRadius: 4 });
+  // Bar fill (gradient-ish: green → indigo)
+  const fillW = Math.round(barTrackW * fillPct / 100);
+  page.drawRectangle({ x: PAD + 14, y: y - 34, width: fillW, height: 8, color: gap <= 1 ? green : indigo, borderRadius: 4 });
+
+  page.drawText(effortNote, { x: PAD + 14, y: y - 50, size: 7.5, font, color: grayText });
+  y -= 74;
+
+  // ── Weekly Schedule section ──────────────────────────────────────────
+  page.drawText('YOUR WEEKLY STUDY SCHEDULE', { x: PAD, y, size: 8, font: fontBold, color: ink });
+  y -= 12;
+
+  const rowH   = 30;
+  const barMax = width - PAD * 2 - 60 - 50; // space for label left + time right
+  const maxH   = Math.max(...distribution, 1);
+
+  days.forEach((day, i) => {
+    const hrs    = distribution[i];
+    const isRest = hrs < 0.2;
+    const barW   = isRest ? 0 : Math.max(8, Math.round((hrs / maxH) * barMax));
+
+    // Row bg
+    page.drawRectangle({ x: PAD, y: y - rowH + 4, width: width - PAD * 2, height: rowH, color: white, borderRadius: 8 });
+    page.drawRectangle({ x: PAD, y: y - rowH + 4, width: width - PAD * 2, height: rowH, borderColor: border, borderWidth: 0.75, borderRadius: 8 });
+
+    // Day label
+    page.drawText(day, { x: PAD + 12, y: y - 10, size: 9, font: fontBold, color: isRest ? grayText : ink });
+
+    // Bar
+    if (!isRest) {
+      page.drawRectangle({ x: PAD + 52, y: y - rowH + 11, width: barW, height: 12, color: indigoLight, borderRadius: 3 });
+      page.drawRectangle({ x: PAD + 52, y: y - rowH + 11, width: Math.min(barW, 24), height: 12, color: rgb(0.73, 0.67, 0.99), borderRadius: 3 });
+    }
+
+    // Time label
+    const timeStr = isRest ? 'Rest' : fmtHours(hrs);
+    page.drawText(timeStr, {
+      x: width - PAD - 12 - fontBold.widthOfTextAtSize(timeStr, 9.5),
+      y: y - 10, size: 9.5, font: fontBold, color: isRest ? grayText : indigo,
+    });
+
+    y -= rowH + 4;
+  });
+  y -= 10;
+
+  // ── Strategy section ─────────────────────────────────────────────────
+  page.drawText('YOUR STRATEGY — 4 TACTICS TO MOVE THE NEEDLE', { x: PAD, y, size: 8, font: fontBold, color: ink });
+  y -= 12;
+
+  const tipMaxW = width - PAD * 2 - 32;
+
+  strategies.forEach((tip, i) => {
+    const lines    = wrapText(tip, font, 8.5, tipMaxW);
+    const cardHeight = lines.length * 12 + 24;
+
+    // Card bg
+    page.drawRectangle({ x: PAD, y: y - cardHeight + 4, width: width - PAD * 2, height: cardHeight, color: white, borderRadius: 8 });
+    page.drawRectangle({ x: PAD, y: y - cardHeight + 4, width: width - PAD * 2, height: cardHeight, borderColor: border, borderWidth: 0.75, borderRadius: 8 });
+
+    // Number badge
+    page.drawCircle({ x: PAD + 20, y: y - 10, size: 10, color: indigo });
+    const numStr = String(i + 1);
+    page.drawText(numStr, {
+      x: PAD + 20 - fontBold.widthOfTextAtSize(numStr, 7.5) / 2,
+      y: y - 13.5,
+      size: 7.5, font: fontBold, color: white,
+    });
+
+    // Tip text
+    lines.forEach((line, li) => {
+      page.drawText(line, { x: PAD + 36, y: y - 9 - li * 12, size: 8.5, font, color: ink });
+    });
+
+    y -= cardHeight + 6;
+  });
+
+  y -= 6;
+
+  // ── CTA footer card ──────────────────────────────────────────────────
+  const ctaH = 68;
+  page.drawRectangle({ x: PAD, y: y - ctaH, width: width - PAD * 2, height: ctaH, color: indigo, borderRadius: 10 });
+
+  page.drawText('Want to make sure this actually works?', {
+    x: PAD + 14, y: y - 22, size: 10, font: fontBold, color: white,
+  });
+  page.drawText('A Dash coach will run this plan with you week by week — keeping you on track', {
+    x: PAD + 14, y: y - 36, size: 7.5, font, color: rgb(0.87, 0.84, 1),
+  });
+  page.drawText('and making sure exam day isn\'t a surprise.', {
+    x: PAD + 14, y: y - 47, size: 7.5, font, color: rgb(0.87, 0.84, 1),
+  });
+
+  // Book button look
+  const btnW = 200, btnH = 24;
+  page.drawRectangle({ x: PAD + 14, y: y - ctaH + 8, width: btnW, height: btnH, color: white, borderRadius: 6 });
+  const btnText = 'Book a Free Strategy Call';
+  page.drawText(btnText, {
+    x: PAD + 14 + (btnW - fontBold.widthOfTextAtSize(btnText, 8)) / 2,
+    y: y - ctaH + 17,
+    size: 8, font: fontBold, color: indigo,
   });
 
   return await pdfDoc.save();
 }
+
+// ── Handler ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -188,10 +339,9 @@ export default async function handler(req, res) {
     email, phone, examDate,
     firstName, lastName,
     className, currentGrade, goalGrade, priority, hours,
-    schedule, strategies,
   } = req.body;
 
-  // ── Save to Supabase ────────────────────────────────────────────────
+  // ── Save to Supabase ─────────────────────────────────────────────────
   try {
     await fetch(`${process.env.SUPABASE_URL}/rest/v1/study_plan_submissions`, {
       method: 'POST',
@@ -218,25 +368,23 @@ export default async function handler(req, res) {
     console.error('Supabase error:', err);
   }
 
-  // ── Generate PDF ────────────────────────────────────────────────────
+  // ── Generate PDF ─────────────────────────────────────────────────────
   let pdfBytes;
   try {
     pdfBytes = await generateStudyPlanPDF({
       firstName, lastName, className,
-      currentGrade, goalGrade, priority, hours, examDate,
-      schedule, strategies,
+      currentGrade, goalGrade, priority,
+      hours, examDate,
     });
   } catch (err) {
     console.error('PDF generation error:', err);
   }
 
-  // ── Send via Mailgun ────────────────────────────────────────────────
+  // ── Send via Mailgun ─────────────────────────────────────────────────
   try {
     const focusLabels = {
-      grade:  'Hit a target grade',
-      gpa:    'Protect my GPA',
-      exam:   'Pass the next exam',
-      habits: 'Build better study habits',
+      grade: 'Hit a target grade', gpa: 'Protect my GPA',
+      exam:  'Pass the next exam', habits: 'Build better study habits',
     };
     const examLine  = examDate ? `\nExam/deadline: ${examDate}` : '';
     const phoneLine = phone    ? `\nPhone: ${phone}` : '';
@@ -244,7 +392,7 @@ export default async function handler(req, res) {
     const emailText = `
 Hi ${firstName},
 
-Your free study plan from Dash Academy is ready — and it's attached to this email as a PDF you can save, print, or share.
+Your free study plan from Dash Academy is attached as a PDF — save it, print it, or pull it up on your phone.
 
 ────────────────────
 Class: ${className || 'Your class'}
@@ -253,11 +401,9 @@ Weekly Study Hours: ${hours} hrs/week
 Focus: ${focusLabels[priority] || priority}${examLine}${phoneLine}
 ────────────────────
 
-Your full weekly schedule and personalized strategy tips are inside the attached PDF.
+Ready to make sure this actually works? A Dash Academy coach can run this plan with you week by week — keeping you on track, adjusting when life gets in the way, and making sure exam day isn't a surprise.
 
-Ready to take it further? A Dash Academy coach can run this plan with you week by week — keeping you on track, adjusting when life gets in the way, and making sure exam day isn't a surprise.
-
-Book your free strategy call here:
+Book your free strategy call:
 https://hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy
 
 — The Dash Academy Team
