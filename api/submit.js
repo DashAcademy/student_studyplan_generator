@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, firstName, className, currentGrade, goalGrade, priority, hours } = req.body;
+  const { email, phone, examDate, firstName, className, currentGrade, goalGrade, priority, hours } = req.body;
 
   // --- Save to Supabase ---
   try {
@@ -17,6 +17,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         email,
+        phone: phone || null,
+        exam_date: examDate || null,
         first_name: firstName,
         class_name: className,
         current_grade: currentGrade,
@@ -31,19 +33,27 @@ export default async function handler(req, res) {
 
   // --- Send email via Mailgun ---
   try {
+    const focusLabels = { grade: 'Hit a target grade', gpa: 'Protect my GPA', exam: 'Pass the next exam', habits: 'Build better study habits' };
+    const examLine = examDate ? `\nExam/deadline: ${examDate}` : '';
+    const phoneLine = phone ? `\nPhone: ${phone}` : '';
+
     const emailText = `
 Hi ${firstName},
 
 Your free study plan from Dash Academy is ready!
 
+────────────────────
 Class: ${className || 'Your class'}
 Current Grade: ${currentGrade} → Goal: ${goalGrade}
-Weekly Hours: ${hours} hrs/week
-Focus: ${priority}
+Weekly Study Hours: ${hours} hrs/week
+Focus: ${focusLabels[priority] || priority}${examLine}${phoneLine}
+────────────────────
 
-Head back to your study plan page to view your full breakdown and weekly schedule.
+Head back to your study plan page to view your full weekly schedule and personalized strategy tips.
 
-Want real results? Book a free strategy call with a Dash Academy coach:
+Ready to take it further? A Dash Academy coach can run this plan with you week by week — keeping you on track, adjusting when life gets in the way, and making sure exam day isn't a surprise.
+
+Book your free strategy call here:
 https://hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy
 
 — The Dash Academy Team
@@ -52,7 +62,7 @@ https://hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy
     const formData = new URLSearchParams();
     formData.append('from', `Dash Academy <noreply@${process.env.MAILGUN_DOMAIN}>`);
     formData.append('to', email);
-    formData.append('subject', `${firstName}, your free study plan is ready`);
+    formData.append('subject', `${firstName}, your free study plan is ready 📚`);
     formData.append('text', emailText);
 
     await fetch(`https://api.mailgun.net/v3/${process.env.MAILGUN_DOMAIN}/messages`, {
