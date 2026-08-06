@@ -1485,7 +1485,7 @@
 
     function fmtHours(h) {
       if (h < 0.2) return 'Rest';
-      const totalMins = Math.round(h * 60);
+      const totalMins = Math.round(Math.round(h * 60 / 15) * 15);
       const hrs = Math.floor(totalMins / 60);
       const mins = totalMins % 60;
       if (hrs === 0) return mins + 'm';
