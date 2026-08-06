@@ -1443,7 +1443,16 @@
       return;
     }
 
-    // Save lead to Supabase immediately (no email yet)
+    // Compute plan data for PDF
+    const distribution = buildWeekDistribution(hours, state.priority);
+    const tips = getStrategy(state.currentGrade, state.goalGrade, state.priority, hours, className);
+    function decodeHtmlEntities(s) {
+      return s.replace(/&mdash;/g,'—').replace(/&ndash;/g,'–').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ');
+    }
+    const schedule = days.map((day, i) => ({ day, hours: distribution[i] }));
+    const strategies = tips.slice(0, 4).map(decodeHtmlEntities);
+
+    // Save lead + send email with PDF
     fetch('/api/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1454,7 +1463,9 @@
         currentGrade: state.currentGrade,
         goalGrade: state.goalGrade,
         priority: state.priority,
-        hours
+        hours,
+        schedule,
+        strategies
       })
     }).then(() => {
       const confirmEl = document.getElementById('emailConfirm');
@@ -1502,7 +1513,6 @@
     setTimeout(() => { document.getElementById('gapBarFill').style.width = fillPct + '%'; }, 80);
 
     // Week schedule — row format with human-readable times
-    const distribution = buildWeekDistribution(hours, state.priority);
     const maxHour = Math.max(...distribution, 1);
     const weekGrid = document.getElementById('weekGrid');
     weekGrid.innerHTML = '';
@@ -1535,7 +1545,6 @@
     });
 
     // Strategy cards
-    const tips = getStrategy(state.currentGrade, state.goalGrade, state.priority, hours, className);
     const strategyList = document.getElementById('strategyList');
     strategyList.innerHTML = '';
     tips.forEach((tip, i) => {
