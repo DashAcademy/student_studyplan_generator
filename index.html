@@ -397,10 +397,197 @@
     border: none;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    transition: background 0.2s ease, transform 0.15s ease;
+    transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 0 4px rgba(109,91,247,0.18), 0 12px 32px -6px rgba(109,91,247,0.6);
   }
-  .generate-btn:hover { background: var(--indigo-dark); transform: translateY(-1px); }
+  .generate-btn:hover { background: var(--indigo-dark); transform: translateY(-1px); box-shadow: 0 0 0 6px rgba(109,91,247,0.2), 0 16px 36px -6px rgba(109,91,247,0.7); }
+  .generate-btn:disabled { background: #A49FE0; cursor: not-allowed; transform: none; box-shadow: none; }
   .form-hint { font-size: 12.5px; color: #9C9AB5; margin-top: 10px; text-align: center; }
+
+  /* ---------- LEAD GATE ---------- */
+  .lead-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0 20px;
+  }
+  .lead-divider-line { flex: 1; height: 1px; background: var(--border); }
+  .lead-divider-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--indigo);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  input[type="tel"], input[type="date"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14.5px;
+    color: var(--ink);
+    background: #fff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    appearance: none;
+  }
+  input[type="tel"]:focus, input[type="date"]:focus {
+    outline: none;
+    border-color: var(--indigo);
+    box-shadow: 0 0 0 3px rgba(109,91,247,0.14);
+  }
+  input[type="date"] { color-scheme: light; }
+
+  /* ---------- IMPROVED RESULTS ---------- */
+  .plan-header-card {
+    background: linear-gradient(135deg, var(--indigo) 0%, #8B6FF7 100%);
+    border-radius: 16px;
+    padding: 22px 22px 18px;
+    margin-bottom: 16px;
+    color: #fff;
+  }
+  .plan-header-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.8;
+    margin-bottom: 6px;
+  }
+  .plan-header-name {
+    font-family: 'Sora', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .plan-header-sub {
+    font-size: 13px;
+    opacity: 0.85;
+    line-height: 1.4;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-mini {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .stat-mini .s-icon { font-size: 18px; margin-bottom: 6px; }
+  .stat-mini .s-val {
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 2px;
+    line-height: 1.2;
+  }
+  .stat-mini .s-lbl { font-size: 10.5px; color: var(--gray-text); font-weight: 600; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--gray-text);
+    margin-bottom: 10px;
+  }
+
+  .strategy-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .strategy-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    transition: box-shadow 0.15s ease;
+  }
+  .strategy-card:hover { box-shadow: 0 4px 16px -8px rgba(109,91,247,0.2); }
+  .strategy-num {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 8px;
+    background: var(--indigo-light);
+    color: var(--indigo);
+    font-size: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .strategy-card p { font-size: 13px; color: var(--ink); line-height: 1.55; margin: 0; }
+
+  .week-section { margin-bottom: 20px; }
+
+  /* ---------- SCHEDULE ROWS ---------- */
+  .schedule-list { display: flex; flex-direction: column; gap: 7px; }
+  .sched-row {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 11px 15px;
+    gap: 14px;
+  }
+  .sched-row.rest { background: var(--indigo-light); border-color: #D6D0F7; }
+  .sched-day { font-size: 13px; font-weight: 700; color: var(--ink); width: 36px; flex-shrink: 0; }
+  .sched-row.rest .sched-day { color: #9D94D9; }
+  .sched-bar-wrap { flex: 1; height: 7px; background: var(--indigo-light); border-radius: 999px; overflow: hidden; }
+  .sched-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--sky), var(--indigo)); transition: width 0.9s ease; width: 0%; }
+  .sched-row.rest .sched-bar-wrap { background: #DDD9F7; }
+  .sched-time { font-size: 13px; font-weight: 700; color: var(--indigo); width: 52px; text-align: right; flex-shrink: 0; }
+  .sched-row.rest .sched-time { color: #9D94D9; font-size: 12px; font-weight: 600; }
+
+  .cta-block-v2 {
+    background: linear-gradient(135deg, #4C3BB5 0%, #7B5BF0 60%, #9D7BF5 100%);
+    border-radius: 16px;
+    padding: 22px 20px;
+    color: #fff;
+    text-align: center;
+  }
+  .cta-block-v2 .cta-emoji { font-size: 28px; margin-bottom: 10px; }
+  .cta-block-v2 h4 { font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 800; margin: 0 0 8px; }
+  .cta-block-v2 p { font-size: 13px; color: rgba(255,255,255,0.8); margin: 0 0 16px; line-height: 1.5; }
+  .cta-book-btn {
+    display: block;
+    width: 100%;
+    background: #fff;
+    color: var(--indigo-dark);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 14px;
+    border-radius: 10px;
+    text-align: center;
+    transition: background 0.15s ease, transform 0.15s ease;
+    box-sizing: border-box;
+  }
+  .cta-book-btn:hover { background: var(--indigo-light); transform: translateY(-1px); }
+  .cta-sent-msg {
+    display: none;
+    background: rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 12px;
+    text-align: left;
+  }
 
   /* ---------- RESULTS PANEL ---------- */
   .tool-results {
@@ -901,8 +1088,33 @@
             <div class="field-help">Outside of class time &mdash; just the hours you can dedicate to reviewing, practicing, and studying on your own.</div>
           </div>
 
-          <button type="submit" class="generate-btn" id="generateBtn">Generate My Study Plan</button>
-          <div class="form-hint">Takes 15 seconds &middot; nothing is saved unless you ask us to</div>
+          <div class="lead-divider">
+            <div class="lead-divider-line"></div>
+            <div class="lead-divider-text">Last step — where to send your plan</div>
+            <div class="lead-divider-line"></div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="leadEmail">Email <span style="color:var(--indigo)">*</span></label>
+              <input type="email" id="leadEmail" placeholder="you@email.com" required>
+              <div class="field-help">We'll send your plan here. No spam, ever.</div>
+            </div>
+            <div class="field">
+              <label for="leadPhone">Phone <span style="color:var(--indigo)">*</span></label>
+              <input type="tel" id="leadPhone" placeholder="+1 (555) 000-0000" required>
+              <div class="field-help">We'll text you a study reminder.</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="examDate">Next exam or deadline <span style="color:var(--gray-text);font-weight:400">(optional)</span></label>
+            <input type="date" id="examDate">
+            <div class="field-help">Helps us make your schedule more urgent where it counts.</div>
+          </div>
+
+          <button type="submit" class="generate-btn" id="generateBtn">✦ Generate My Free Study Plan &rarr;</button>
+          <div class="form-hint">Free forever &middot; your plan generates instantly</div>
         </form>
       </div>
 
@@ -916,31 +1128,54 @@
         </div>
 
         <div class="results-content" id="resultsContent">
-          <div class="result-greeting" id="resultGreeting">YOUR PLAN</div>
-          <h3 class="result-title" id="resultTitle">Here's your roadmap</h3>
 
-          <div class="gap-card">
+          <div class="plan-header-card">
+            <div class="plan-header-label">Your personalized plan</div>
+            <div class="plan-header-name" id="resultTitle">Here's your roadmap</div>
+            <div class="plan-header-sub" id="resultSubtitle">Based on your goals and available time</div>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-mini">
+              <div class="s-icon">📈</div>
+              <div class="s-val" id="gapValue">B → A</div>
+              <div class="s-lbl">Grade goal</div>
+            </div>
+            <div class="stat-mini">
+              <div class="s-icon">⏱️</div>
+              <div class="s-val" id="hoursVal">—</div>
+              <div class="s-lbl">hrs/week</div>
+            </div>
+            <div class="stat-mini">
+              <div class="s-icon">🎯</div>
+              <div class="s-val" id="focusVal">—</div>
+              <div class="s-lbl">Focus mode</div>
+            </div>
+          </div>
+
+          <div class="gap-card" style="margin-bottom:16px;">
             <div class="gap-card-top">
-              <span class="label">Grade gap to close</span>
-              <span class="value" id="gapValue">B &rarr; A</span>
+              <span class="label">Effort required to close the gap</span>
+              <span class="value" id="effortVal">Moderate</span>
             </div>
             <div class="gap-bar-track"><div class="gap-bar-fill" id="gapBarFill"></div></div>
             <div class="gap-card-note" id="gapNote">This is a realistic jump with consistent weekly effort.</div>
           </div>
 
-          <div class="week-grid" id="weekGrid"></div>
+          <div class="week-section">
+            <div class="section-label">Your weekly study schedule</div>
+            <div class="schedule-list" id="weekGrid"></div>
+          </div>
 
-          <ul class="strategy-list" id="strategyList"></ul>
+          <div class="section-label">Your strategy — 4 tactics to actually move the needle</div>
+          <div class="strategy-cards" id="strategyList"></div>
 
-          <div class="cta-block">
-            <h4>Want a coach to run this plan with you?</h4>
-            <p>A Dash academic coach can turn this into real results &mdash; tailored sessions, accountability, and exam-specific prep.</p>
-            <div class="email-success" id="emailSuccess">Sent! Check your inbox shortly.</div>
-            <div class="email-row">
-              <input type="email" id="emailCapture" placeholder="you@email.com">
-              <button type="button" class="save-btn" onclick="saveEmail()">Email Me This</button>
-            </div>
-            <a href="https://hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy" target="_blank" class="book-btn">Book a Free Strategy Call</a>
+          <div class="cta-block-v2">
+            <div class="cta-emoji">🚀</div>
+            <h4>Want to make sure this actually works?</h4>
+            <p>A Dash coach will run this plan with you week by week — keeping you on track, adjusting when life gets in the way, and making sure exam day isn't a surprise.</p>
+            <div class="cta-sent-msg" id="emailSuccess">✓ Check your inbox — your plan is on the way.</div>
+            <a href="https://hi.mydashacademy.com/widget/bookings/strategy-session-dashacademy" target="_blank" class="cta-book-btn">Book a Free Strategy Call</a>
           </div>
         </div>
       </div>
@@ -1161,117 +1396,139 @@
     return tips.slice(0, 4);
   }
 
+  const focusLabels = { grade: 'Target grade', gpa: 'GPA shield', exam: 'Exam prep', habits: 'Habit build' };
+
   document.getElementById('planForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
     const firstName = document.getElementById('firstName').value.trim() || 'there';
     const className = classInput.value.trim();
+    const email = document.getElementById('leadEmail').value.trim();
+    const phone = document.getElementById('leadPhone').value.trim();
+    const examDate = document.getElementById('examDate').value;
     const hours = state.hours;
 
     if (!state.currentGrade || !state.goalGrade || !state.priority || !hours) {
       alert('Please select your current grade, goal grade, priority, and weekly hours so we can build your plan.');
       return;
     }
-
-    document.getElementById('placeholderState').style.display = 'none';
-    const resultsContent = document.getElementById('resultsContent');
-    resultsContent.classList.add('show');
-
-    document.getElementById('resultGreeting').textContent = `${firstName.toUpperCase()}'S PLAN`;
-    document.getElementById('resultTitle').textContent = className ? `Your plan for ${className}` : 'Here\'s your roadmap';
-
-    const curLabel = gradeLabel[state.currentGrade];
-    const goalLabel = gradeLabel[state.goalGrade];
-    document.getElementById('gapValue').textContent = `${curLabel} \u2192 ${goalLabel}`;
-
-    const gapSize = Math.max(0, (gradeRank[state.goalGrade] ?? 3) - (gradeRank[state.currentGrade] ?? 2));
-    let fillPct, note;
-    if (gapSize === 0) {
-      fillPct = 85;
-      note = 'You\u2019re aiming to hold steady \u2014 consistency is your main lever here.';
-    } else if (gapSize <= 1) {
-      fillPct = 65;
-      note = 'A focused, achievable jump with consistent weekly effort.';
-    } else if (gapSize <= 2) {
-      fillPct = 40;
-      note = 'A real stretch goal \u2014 doable, but it\u2019ll take disciplined weekly work.';
-    } else {
-      fillPct = 20;
-      note = 'An ambitious goal. Pairing this plan with coaching is the fastest way to close a gap this size.';
-    }
-    setTimeout(() => {
-      document.getElementById('gapBarFill').style.width = fillPct + '%';
-    }, 80);
-    document.getElementById('gapNote').textContent = note;
-
-    const distribution = buildWeekDistribution(hours, state.priority);
-    const maxHour = Math.max(...distribution, 1);
-    const weekGrid = document.getElementById('weekGrid');
-    weekGrid.innerHTML = '';
-    days.forEach((day, i) => {
-      const val = distribution[i];
-      const heightPct = Math.max(8, Math.round((val / maxHour) * 100));
-      const isRest = val < 0.3;
-      const col = document.createElement('div');
-      col.className = 'day-col';
-      col.innerHTML = `
-        <div class="day-label">${day}</div>
-        <div class="day-bar">
-          <div class="day-fill ${isRest ? 'rest' : ''}" style="height:0%">
-            <span>${isRest ? 'rest' : val + 'h'}</span>
-          </div>
-        </div>
-      `;
-      weekGrid.appendChild(col);
-      setTimeout(() => {
-        col.querySelector('.day-fill').style.height = heightPct + '%';
-      }, 100);
-    });
-
-    const tips = getStrategy(state.currentGrade, state.goalGrade, state.priority, hours, className);
-    const strategyList = document.getElementById('strategyList');
-    strategyList.innerHTML = '';
-    tips.forEach(tip => {
-      const li = document.createElement('li');
-      li.innerHTML = `<span class="check">&#10003;</span><span>${tip}</span>`;
-      strategyList.appendChild(li);
-    });
-
-    if (window.innerWidth < 880) {
-      resultsContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  });
-
-  function saveEmail() {
-    const email = document.getElementById('emailCapture').value.trim();
     if (!email || !email.includes('@')) {
-      alert('Please enter a valid email address.');
+      alert('Please enter a valid email address so we can send you the plan.');
       return;
     }
-    const successEl = document.getElementById('emailSuccess');
-    successEl.textContent = 'Sending...';
-    successEl.style.display = 'block';
+    if (!phone) {
+      alert('Please enter your phone number so we can send you a study reminder.');
+      return;
+    }
 
+    // Save lead immediately
     fetch('/api/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email,
-        firstName: document.getElementById('firstName').value.trim() || 'there',
-        className: document.getElementById('classInput').value.trim(),
+        email, phone, examDate,
+        firstName,
+        className,
         currentGrade: state.currentGrade,
         goalGrade: state.goalGrade,
         priority: state.priority,
-        hours: state.hours
+        hours
       })
-    })
-    .then(() => {
-      successEl.textContent = `Sent! We'll email your plan to ${email} shortly.`;
-    })
-    .catch(() => {
-      successEl.textContent = `Sent! We'll email your plan to ${email} shortly.`;
+    }).then(() => {
+      document.getElementById('emailSuccess').style.display = 'block';
+    }).catch(() => {});
+
+    // Render plan
+    document.getElementById('placeholderState').style.display = 'none';
+    const resultsContent = document.getElementById('resultsContent');
+    resultsContent.classList.add('show');
+
+    // Header
+    document.getElementById('resultTitle').textContent = className ? `${firstName}'s plan for ${className}` : `${firstName}'s study plan`;
+    const curLabel = gradeLabel[state.currentGrade];
+    const goalLabel = gradeLabel[state.goalGrade];
+
+    let examLine = '';
+    if (examDate) {
+      const d = new Date(examDate + 'T00:00:00');
+      const daysLeft = Math.ceil((d - new Date()) / 86400000);
+      examLine = daysLeft > 0 ? ` \u00b7 ${daysLeft} days to your exam` : '';
+    }
+    document.getElementById('resultSubtitle').textContent = `${hours} hrs/week \u00b7 ${focusLabels[state.priority] || 'Focused'}${examLine}`;
+
+    // Stats
+    document.getElementById('gapValue').textContent = `${curLabel} \u2192 ${goalLabel}`;
+    document.getElementById('hoursVal').textContent = hours + ' hrs';
+    document.getElementById('focusVal').textContent = focusLabels[state.priority] || '\u2014';
+
+    // Effort bar
+    const gapSize = Math.max(0, (gradeRank[state.goalGrade] ?? 3) - (gradeRank[state.currentGrade] ?? 2));
+    let fillPct, effortLabel, note;
+    if (gapSize === 0) {
+      fillPct = 30; effortLabel = 'Low'; note = 'You\'re maintaining \u2014 consistency is your main lever here.';
+    } else if (gapSize <= 1) {
+      fillPct = 55; effortLabel = 'Moderate'; note = 'A focused, achievable jump with consistent weekly effort.';
+    } else if (gapSize <= 2) {
+      fillPct = 75; effortLabel = 'High'; note = 'A real stretch goal \u2014 doable, but it\'ll take disciplined weekly work.';
+    } else {
+      fillPct = 92; effortLabel = 'Intensive'; note = 'An ambitious goal. Pairing this plan with coaching is the fastest path.';
+    }
+    document.getElementById('effortVal').textContent = effortLabel;
+    document.getElementById('gapNote').textContent = note;
+    setTimeout(() => { document.getElementById('gapBarFill').style.width = fillPct + '%'; }, 80);
+
+    // Week schedule — row format with human-readable times
+    const distribution = buildWeekDistribution(hours, state.priority);
+    const maxHour = Math.max(...distribution, 1);
+    const weekGrid = document.getElementById('weekGrid');
+    weekGrid.innerHTML = '';
+
+    function fmtHours(h) {
+      if (h < 0.2) return 'Rest';
+      const totalMins = Math.round(h * 60);
+      const hrs = Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      if (hrs === 0) return mins + 'm';
+      if (mins === 0) return hrs + 'h';
+      return hrs + 'h ' + mins + 'm';
+    }
+
+    days.forEach((day, i) => {
+      const val = distribution[i];
+      const isRest = val < 0.2;
+      const widthPct = isRest ? 0 : Math.max(10, Math.round((val / maxHour) * 100));
+      const row = document.createElement('div');
+      row.className = 'sched-row' + (isRest ? ' rest' : '');
+      row.innerHTML = `
+        <span class="sched-day">${day}</span>
+        <div class="sched-bar-wrap"><div class="sched-bar" style="width:0%"></div></div>
+        <span class="sched-time">${fmtHours(val)}</span>`;
+      weekGrid.appendChild(row);
+      setTimeout(() => {
+        const bar = row.querySelector('.sched-bar');
+        if (bar) bar.style.width = widthPct + '%';
+      }, 120 + i * 40);
     });
-  }
+
+    // Strategy cards
+    const tips = getStrategy(state.currentGrade, state.goalGrade, state.priority, hours, className);
+    const strategyList = document.getElementById('strategyList');
+    strategyList.innerHTML = '';
+    tips.forEach((tip, i) => {
+      const card = document.createElement('div');
+      card.className = 'strategy-card';
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(8px)';
+      card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      card.innerHTML = `<div class="strategy-num">${i + 1}</div><p>${tip}</p>`;
+      strategyList.appendChild(card);
+      setTimeout(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; }, 200 + i * 80);
+    });
+
+    if (window.innerWidth < 880) {
+      setTimeout(() => { resultsContent.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+    }
+  });
 </script>
 
 </body>
